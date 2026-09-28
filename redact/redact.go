@@ -3,6 +3,9 @@ package redact
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"os"
 	"strings"
 )
 
@@ -31,6 +34,19 @@ func (p Policy) normalized() Policy {
 		}
 	}
 	return p
+}
+
+// Load 读取使用方自己的脱敏策略。文件不存在时由调用方决定是否继续。
+func Load(path string) (Policy, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return Policy{}, fmt.Errorf("读取脱敏策略: %w", err)
+	}
+	var policy Policy
+	if err := json.Unmarshal(data, &policy); err != nil {
+		return Policy{}, fmt.Errorf("解析脱敏策略: %w", err)
+	}
+	return policy, nil
 }
 
 // Apply 返回新的值。secrets 里足够长的字符串会从文本中替换掉。

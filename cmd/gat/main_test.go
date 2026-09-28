@@ -6,6 +6,13 @@ import (
 	"testing"
 )
 
+func TestHTTPRequiresSpec(t *testing.T) {
+	err := run([]string{"http"}, &bytes.Buffer{})
+	if err == nil || !strings.Contains(err.Error(), "--spec") {
+		t.Fatalf("err %v", err)
+	}
+}
+
 func TestCheckPrintsSummaryWithoutConst(t *testing.T) {
 	var stdout bytes.Buffer
 	err := run([]string{"check", "--profile", "../../examples/profile.example.json"}, &stdout)

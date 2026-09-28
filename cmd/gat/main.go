@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"encoding/hex"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -10,6 +12,8 @@ import (
 	"strings"
 
 	"github.com/Q-xuan/gat/codec"
+	"github.com/Q-xuan/gat/httpcall"
+	"github.com/Q-xuan/gat/redact"
 )
 
 func main() {
@@ -31,6 +35,8 @@ func run(args []string, stdout io.Writer) error {
 		return encode(args[1:], stdout)
 	case "decode":
 		return decode(args[1:], stdout)
+	case "http":
+		return httpCommand(args[1:], stdout)
 	default:
 		return fmt.Errorf("未知命令 %q\n%s", args[0], usage())
 	}
@@ -41,6 +47,7 @@ func usage() string {
 gat check --profile <file>
 gat encode --profile <file> --opcode <n> [--seq n] [--ret n] [--payload hex] [--identity name=n] [--raw name=n]
 gat decode --profile <file> --hex <frame> [--verify]
+gat http --spec <file> [--redact <file>]
 `)
 }
 
@@ -145,6 +152,41 @@ func decode(args []string, stdout io.Writer) error {
 		fmt.Fprintf(stdout, "payload=%s\n", hex.EncodeToString(frame.Payload))
 	}
 	return nil
+}
+
+func httpCommand(args []string, stdout io.Writer) error {
+	fs := flag.NewFlagSet("http", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	specPath := fs.String("spec", "", "http spec json path")
+	redactPath := fs.String("redact", "", "redact policy json path")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *specPath == "" {
+		return fmt.Errorf("需要 --spec")
+	}
+	spec, err := httpcall.LoadSpec(*specPath)
+	if err != nil {
+		return err
+	}
+	var policy redact.Policy
+	if *redactPath != "" {
+		policy, err = redact.Load(*redactPath)
+		if err != nil {
+			return err
+		}
+	}
+	report, callErr := httpcall.Do(context.Background(), spec, policy, nil)
+	if err := writeJSON(stdout, report); err != nil {
+		return err
+	}
+	return callErr
+}
+
+func writeJSON(w io.Writer, value any) error {
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	return enc.Encode(value)
 }
 
 func loadProfile(path string) (codec.Profile, error) {

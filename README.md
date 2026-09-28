@@ -14,6 +14,7 @@ go install github.com/Q-xuan/gat/cmd/gat@latest
 
 - `gat.profile.json`：二进制头
 - `gat.redact.json`：报告里要删掉或遮住的键
+- `gat.http.json`：一次 HTTP 请求，没有 HTTP 接口可以不放
 
 然后：
 
@@ -21,6 +22,7 @@ go install github.com/Q-xuan/gat/cmd/gat@latest
 gat check --profile gat.profile.json
 gat encode --profile gat.profile.json --opcode 1 --seq 1 --payload 0102
 gat decode --profile gat.profile.json --hex <encode 的输出>
+gat http --spec gat.http.json --redact gat.redact.json
 ```
 
 `check` 只打印头部字节数、字段数、端序、长度口径和是否启用签名，不打印常量。`encode` 的十六进制里含有 profile 常量，不要贴到公开渠道。
@@ -35,7 +37,7 @@ go get github.com/Q-xuan/gat
 
 编解码用 `github.com/Q-xuan/gat/codec`，报告脱敏用 `github.com/Q-xuan/gat/redact`。
 
-把自己的 AI 指到本仓库根目录的 `SKILL.md`。它会按项目现有协议写私有 profile，再跑 `check` 和一次往返。
+把自己的 AI 指到本仓库根目录的 `SKILL.md`。它会按项目现有协议写私有 profile，再跑 `check` 和一次往返。要改 gat 本身时读 `AGENTS.md`。
 
 ## Profile
 
@@ -68,8 +70,14 @@ go get github.com/Q-xuan/gat
 
 业务字段名写在项目自己的策略里。临时示例是 `examples/redact.example.json`。
 
+## HTTP
+
+`gat http` 按使用方的 JSON 发一次 HTTP 请求。只接受 `http` 和 `https`。响应正文会按 `--redact` 脱敏后再打印，请求头不会打印。`${变量名}` 从环境变量替换，替换出来的值也会从正文里抹掉。
+
+`expect_status` 与实际状态码不一致时，命令以失败退出，标准输出仍是脱敏后的结果。临时示例是 `examples/http.example.json`，地址只是本机占位。
+
 ## 当前范围
 
-现在可以接入的是：校验 profile、组一帧、拆一帧、在 Go 里做报告脱敏。
+现在可以接入的是：校验 profile、组一帧、拆一帧、发一次 HTTP 请求，以及在 Go 里做报告脱敏。
 
-按场景自动登录、发送、等待推送和断言还不在这条命令里。各项目仍用自己的测试流程调用 `encode` / `decode`。
+按场景自动登录、连续多步、等待推送和断言还不在这条命令里。各项目仍用自己的测试流程调用 `encode`、`decode` 和 `http`。
