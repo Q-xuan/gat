@@ -1,0 +1,7 @@
+{
+  "drop_key_substrings": ["bag"],
+  "redact_key_substrings": ["token"],
+  "omit_paths": ["meta.note"],
+  "fingerprint": "sha256-8",
+  "presets": ["credentials"]
+}

@@ -1,0 +1,15 @@
+{
+  "endian": "big",
+  "length_basis": "payload",
+  "max_payload": 1048576,
+  "fields": [
+    {"name": "mark", "type": "uint16", "role": "const", "const": 4660},
+    {"name": "op", "type": "uint16", "role": "opcode"},
+    {"name": "n", "type": "uint32", "role": "seq"},
+    {"name": "size", "type": "uint32", "role": "length"}
+  ],
+  "classify": {
+    "push": {"seq_eq": 0},
+    "response": {"seq_gt": 0, "opcode_ge": 100, "opcode_lt": 200}
+  }
+}
