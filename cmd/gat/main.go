@@ -8,11 +8,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
+	"github.com/Q-xuan/gat/call"
 	"github.com/Q-xuan/gat/codec"
-	"github.com/Q-xuan/gat/httpcall"
 	"github.com/Q-xuan/gat/redact"
 )
 
@@ -35,8 +36,10 @@ func run(args []string, stdout io.Writer) error {
 		return encode(args[1:], stdout)
 	case "decode":
 		return decode(args[1:], stdout)
+	case "call":
+		return runSpec("call", args[1:], stdout)
 	case "http":
-		return httpCommand(args[1:], stdout)
+		return runSpec("http", args[1:], stdout)
 	default:
 		return fmt.Errorf("未知命令 %q\n%s", args[0], usage())
 	}
@@ -47,6 +50,7 @@ func usage() string {
 gat check --profile <file>
 gat encode --profile <file> --opcode <n> [--seq n] [--ret n] [--payload hex] [--identity name=n] [--raw name=n]
 gat decode --profile <file> --hex <frame> [--verify]
+gat call --spec <file> [--redact <file>]
 gat http --spec <file> [--redact <file>]
 `)
 }
@@ -154,10 +158,10 @@ func decode(args []string, stdout io.Writer) error {
 	return nil
 }
 
-func httpCommand(args []string, stdout io.Writer) error {
-	fs := flag.NewFlagSet("http", flag.ContinueOnError)
+func runSpec(command string, args []string, stdout io.Writer) error {
+	fs := flag.NewFlagSet(command, flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	specPath := fs.String("spec", "", "http spec json path")
+	specPath := fs.String("spec", "", "call spec json path")
 	redactPath := fs.String("redact", "", "redact policy json path")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -165,8 +169,11 @@ func httpCommand(args []string, stdout io.Writer) error {
 	if *specPath == "" {
 		return fmt.Errorf("需要 --spec")
 	}
-	spec, err := httpcall.LoadSpec(*specPath)
+	spec, err := call.Load(*specPath)
 	if err != nil {
+		return err
+	}
+	if err := spec.Prepare(command); err != nil {
 		return err
 	}
 	var policy redact.Policy
@@ -176,7 +183,7 @@ func httpCommand(args []string, stdout io.Writer) error {
 			return err
 		}
 	}
-	report, callErr := httpcall.Do(context.Background(), spec, policy, nil)
+	report, callErr := call.Do(context.Background(), spec, policy, filepath.Dir(*specPath), nil)
 	if err := writeJSON(stdout, report); err != nil {
 		return err
 	}

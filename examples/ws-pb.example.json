@@ -1,0 +1,12 @@
+{
+  "transport": "ws",
+  "payload": "pb",
+  "url": "ws://127.0.0.1:9/ws",
+  "body": {},
+  "pb": {
+    "descriptor": "messages.pb",
+    "request": "sample.Ping",
+    "response": "sample.Ping"
+  },
+  "timeout": "5s"
+}

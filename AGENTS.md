@@ -4,9 +4,11 @@
 
 ## 保持通用
 
-帧格式、签名密钥、HTTP 地址和请求头、脱敏字段名、登录和业务场景都属于使用方。它们只出现在使用方自己的 profile、HTTP spec 和测试里。
+帧格式、签名密钥、调用地址和请求头、protobuf descriptor、消息名、脱敏字段名、登录和业务场景都属于使用方。它们只出现在使用方自己的 profile、调用说明和测试里。
 
-本仓库的 Go 源码和 `examples/` 只保留无业务含义的临时样例。新增一种帧差异时，先加 profile 字段或 role，并补测试。不要把某一款游戏的魔数、字段顺序或默认密钥写进代码。
+本仓库的 Go 源码和 `examples/` 只保留无业务含义的临时样例。新增一种帧差异时，先加 profile 字段或 role，并补测试。不要把某一款游戏的魔数、字段顺序、默认密钥或 descriptor 写进代码。
+
+传输和正文分开。`transport` 只负责 http 或 ws，`payload` 只负责 json 或 pb，二进制帧继续走 `codec`。新增组合时复用这三边，不要再写一套发送，也不要内置某一款游戏的消息。descriptor 由使用方用 FileDescriptorSet 提供。
 
 密钥只从 profile 的 `sign.key_env` 读取。`check` 的输出不打印常量。
 
