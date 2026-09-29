@@ -1,10 +1,12 @@
 # gat
 
-给 Agent 用的游戏协议测试命令。名字是 game、agent、test 的简写。
+这个仓库是给 agent 用来对网络服务拼一次测试的工具。
 
-一款游戏的帧格式和脱敏规则写在该项目自己的 JSON 里。gat 仓库不保存任何一款游戏的魔数、字段布局、密钥或业务场景。
+最小例子是 `examples/profile.example.json`。可复制的四步在 `SKILL.md` 开头。入门停在一次调用：先离线 `check` 这份例子，要打服务时只改调用说明里的 URL 和正文，再跑 `gat call`。
 
-## 接入
+名字是 game、agent、test 的简写。一款游戏的帧格式和脱敏规则写在该项目自己的 JSON 里。gat 仓库不保存任何一款游戏的魔数、字段布局、密钥或业务场景。
+
+## 安装
 
 ```text
 go install github.com/Q-xuan/gat/cmd/gat@latest
@@ -14,15 +16,16 @@ go install github.com/Q-xuan/gat/cmd/gat@latest
 
 - `gat.profile.json`：二进制头，只有帧协议才需要
 - `gat.redact.json`：报告里要删掉或遮住的键
-- `gat.call.json`：一次收发，写明 `transport` 和 `payload`
+- `gat.call.json`：一次调用，写明 `transport` 和 `payload`
 
-然后：
+## 命令
 
 ```text
-gat check --profile gat.profile.json
-gat encode --profile gat.profile.json --opcode 1 --seq 1 --payload 0102
-gat decode --profile gat.profile.json --hex <encode 的输出>
-gat call --spec gat.call.json --redact gat.redact.json
+gat check --profile <file>
+gat encode --profile <file> --opcode <n> [--seq n] [--ret n] [--payload hex] [--identity name=n] [--raw name=n]
+gat decode --profile <file> --hex <frame> [--verify]
+gat call --spec <file> [--redact <file>]
+gat http --spec <file> [--redact <file>]
 ```
 
 `check` 只打印头部字节数、字段数、端序、长度口径和是否启用签名，不打印常量。`encode` 的十六进制里含有 profile 常量，不要贴到公开渠道。
@@ -37,7 +40,7 @@ go get github.com/Q-xuan/gat
 
 编解码用 `github.com/Q-xuan/gat/codec`，报告脱敏用 `github.com/Q-xuan/gat/redact`。一次收发用 `github.com/Q-xuan/gat/call`，传输在 `transport`，正文编码在 `payload`。
 
-把自己的 AI 指到本仓库根目录的 `SKILL.md`。它会按项目现有协议写私有 profile，再跑 `check` 和一次往返。要改 gat 本身时读 `AGENTS.md`。
+照抄入门看本仓库根目录的 `SKILL.md`。要改 gat 本身时读 `AGENTS.md`。
 
 ## Profile
 
@@ -56,7 +59,7 @@ go get github.com/Q-xuan/gat
 
 `classify.push` 和 `classify.response` 可以用 `seq_eq`、`seq_gt`、`opcode_ge`、`opcode_lt`。未命中且有 `seq` 时视为请求，否则视为普通消息。
 
-`examples/profile.example.json` 是临时示例，字段名和常量没有业务含义。接入时复制出来再改。
+`examples/profile.example.json` 是最小例子。字段名和常量没有业务含义，只是临时样例。接到具体服务时复制出来再改。
 
 ## 脱敏
 
@@ -68,7 +71,7 @@ go get github.com/Q-xuan/gat
 - `fingerprint` 为 `sha256-8` 时，把运行中出现的秘密字符串换成短指纹
 - `presets` 可包含 `credentials`，只覆盖通用的 token、password、secret
 
-业务字段名写在项目自己的策略里。临时示例是 `examples/redact.example.json`。
+业务字段名写在项目自己的策略里。`examples/redact.example.json` 是变体。
 
 ## 一次收发
 
@@ -104,10 +107,10 @@ HTTP 只接受 `http` 和 `https`。WebSocket 只接受 `ws` 和 `wss`，发一�
 
 `binary` 只影响 WebSocket 的消息类型。省略时，`pb` 和带 `frame` 的请求走二进制，其余走文本。带 `frame` 时不能改成文本。
 
-临时示例是 `examples/http.example.json` 和 `examples/ws-pb.example.json`。地址、消息名和 descriptor 文件名都没有业务含义。
+`examples/http.example.json` 和 `examples/ws-pb.example.json` 是变体。地址、消息名和 descriptor 文件名都没有业务含义。
 
 ## 当前范围
 
-现在可以接入的是：校验 profile、组一帧、拆一帧、按上面四种组合发一次请求，以及在 Go 里做报告脱敏。二进制帧可以包在任意一种正文外面。
+现在可以做的是：`check` 校验 profile，`encode` 组一帧，`decode` 拆一帧，按 `http` 或 `ws`、`json` 或 `pb` 发一次请求，以及给报告脱敏。`gat call` 要求写明传输和正文。`gat http` 是同一次发送，缺省为 `http` + `json`。二进制帧可以包在任意一种正文外面。HTTP 的 `expect_status` 只核对这一次响应的状态码。
 
-按场景自动登录、连续多步、等待推送和断言还不在这条命令里。WebSocket 不会挂着等下一条推送。各项目仍用自己的测试流程调用 `encode`、`decode` 和 `call`。
+登录、连续多步、等待推送，以及把多次收发放成测试流，都不在这条命令里。WebSocket 只读回一条。

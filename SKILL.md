@@ -1,13 +1,41 @@
 ---
 name: gat
-description: 让 Agent 用项目自己的 profile 和调用说明接入 gat，组合 http 或 ws、json 或 pb，完成检查、组帧、拆帧、一次收发和报告脱敏。真实协议、密钥和业务场景留在使用方仓库。
+description: 这个仓库是给 agent 用来对网络服务拼一次测试的工具。用调用说明组合 http 或 ws、json 或 pb，做检查、组帧、拆帧和一次调用。入门停在一次调用。
 ---
 
 # gat
 
-gat 是 game、agent、test 的简写。用它检查一款游戏自己的二进制帧，并按 `http` 或 `ws`、`json` 或 `pb` 做一次收发。
+这个仓库是给 agent 用来对网络服务拼一次测试的工具。
+
+## 入门
+
+1. 用调用说明拼一次请求。零件是传输（`http` 或 `ws`）、正文（`json` 或 `pb`）、可选外层帧。
+2. 最小例子是 `examples/profile.example.json`。它没有业务含义，只是临时样例，现在就可以离线 `check`。
+3. 在仓库根目录跑这条不连外网的命令：
+
+```text
+go run ./cmd/gat check --profile examples/profile.example.json
+```
+
+装到 `PATH` 之后同一条是 `gat check --profile examples/profile.example.json`。输出是：
+
+```text
+header_bytes=12 fields=4 length_basis=payload endian=big sign=false
+```
+
+4. 要打服务时，只改调用说明里的 URL 和正文，跑 `gat call --spec <file>`。按报告里的固定字段判断过没过：`ok` 为 true 才算过。没过时读 `error`。HTTP 看 `status`，正文在 `body`。有外层帧时读 `frame` 的 `kind`、`opcode`、`seq`、`has_seq`、`ret`、`has_ret`。
+
+- 具体服务的密钥、魔数、消息名只写在使用方的 profile 和用例里。
+- 发送只有 `call.Do` 一条路径。
+- 未知的 transport 或 payload 会被拒绝。
+
+## 变体
+
+`examples/http.example.json`、`examples/ws-pb.example.json`、`examples/redact.example.json` 是变体。
 
 ## 接入
+
+入门只做上面四步。下面说明接到具体服务时，字段写在哪。
 
 1. 只从使用方仓库读取帧布局。对照该项目已有的组包、解包代码，写一份私有 `gat.profile.json`。
 2. 复制 `examples/profile.example.json` 的字段角色，再替换成该项目的端序、长度口径、字段和分类规则。示例里的名字和常量没有业务含义。

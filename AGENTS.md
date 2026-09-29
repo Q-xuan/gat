@@ -1,3 +1,11 @@
+# gat
+
+这个仓库是给 agent 用来对网络服务拼一次测试的工具。
+
+要测服务，按四步做。最小例子是 `examples/profile.example.json`。可复制的命令在 `SKILL.md` 开头。
+
+要改这个工具，再读下面已有的约束。
+
 # 修改 gat
 
 这份说明给要改本仓库的 Agent。用 gat 去接一款游戏时，读 `SKILL.md`，不要改这里的代码。
